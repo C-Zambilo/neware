@@ -79,7 +79,7 @@ begin
      end;
  ///verificação de campos Finalizada
  ///
-      with DataModule2 do
+   with DataModule2 do
    BEGIN
     DataModule2.qrycliente.Active:=false;
     DataModule2.qrycliente.SQL.Clear;
@@ -132,9 +132,6 @@ begin
            DataModule2.qrycliente.ParamByName('cli_complemento').AsString:=AnsiUpperCase(RemoveAcentos(complemento.Text));
            DataModule2.qrycliente.ParamByName('cli_credito').AsString:=credito.Text;
            DataModule2.qrycliente.ParamByName ('cli_ibge').AsString:=ibge.Text;
-           DataModule2.qrycliente.EXECSQL;
-        end;
-
         Try
   			DataModule2.qrycliente.EXECSQL;
 				ShowMessage('O Cliente foi inserido/Atualizado com sucesso em sua base!'+
@@ -142,19 +139,7 @@ begin
       Except On E:Exception Do
         Raise Exception.Create('Problemas ao inserir/Atualizar cliente.'+#10+E.Message);
       End;
-      
-//             if DataModule2.qrycliente.Locate('cli_razao', id.Text,[]) then
-//         begin
-//          ShowMessage('O cliente ja está cadastrado');
-//         end;
-
-  ELSE
-      ShowMessage('O Novo Cliente foi inserido com sucesso em sua base!'+
-                 'sincronize-o para enviá-lo a base do servidor');
-
+End;
     CNPJ.ReadOnly:= false;
     credito.Text:='3.000';
-
-
-  end;
 end;

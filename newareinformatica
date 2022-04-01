@@ -120,14 +120,11 @@ begin
           DataModule2.qrycliente.ParamByName ('cli_ibge').AsString:=ibge.Text;
           DataModule2.qrycliente.ParamByName('cli_id').AsString:=id.Text;
           DataModule2.qrycliente.ExecSQL;
-         end;
+         end
 
-    DataModule2.qrycliente.Active:=false;
-    DataModule2.qrycliente.SQL.Clear;
-    DataModule2.qrycliente.SQL.ADD('SELECT * FROM  TAB_CLIENTE');
-    DataModule2.qrycliente.Active:=true;
+
     //CASO NÃO VEJA QUE O ID ESTÁ INSERIDO NA BASE...
-         if not DataModule2.qrycliente.Locate('cli_codigo', id.Text) then
+        Else //if not DataModule2.qrycliente.Locate('cli_codigo', id.Text) then
         begin
            DataModule2.qrycliente.Active:=false;
            DataModule2.qrycliente.SQL.Clear;

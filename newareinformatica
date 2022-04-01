@@ -79,50 +79,21 @@ begin
      end;
  ///verificação de campos Finalizada
  ///
-   with DataModule2 do
+      with DataModule2 do
    BEGIN
     DataModule2.qrycliente.Active:=false;
     DataModule2.qrycliente.SQL.Clear;
     DataModule2.qrycliente.SQL.ADD('SELECT * FROM  TAB_CLIENTE');
     DataModule2.qrycliente.Active:=true;
-         if  DataModule2.qrycliente.Locate('cli_codigo', id.Text,[]) then
-         begin
+   if  DataModule2.qrycliente.Locate('cli_codigo', id.Text,[]) then
+        begin
            DataModule2.qrycliente.Active:=false;
            DataModule2.qrycliente.SQL.Clear;
            DataModule2.qrycliente.SQL.ADD('UPDATE TAB_CLIENTE SET cli_razao =:cli_razao, cli_fantasia =:cli_fantasia, cli_cgc =:cli_cgc, cli_inscricao =:cli_inscricao, cli_cep =:cli_cep, '+
            ' cli_logradouro =:cli_logradouro, cli_bairro =:cli_bairro, cli_estado =:cli_estado, cli_municipio =:cli_municipio, cli_ibge =:cli_ibge, cli_contato =:cli_contato, cli_telefone =:cli_telefone,'+
            ' cli_celular =:cli_celular, cli_email =:cli_email, cli_vendedor =:cli_vendedor, cli_cadastro =:cli_cadastro, cli_alteracao =:cli_alteracao, cli_vendedor2 =:cli_vendedor2, cli_ativo =:cli_ativo,'+
-           ' cli_novo =:cli_novo, cli_vendedor3 =:cli_vendedor3, cli_vendedor4 =:cli_vendedor4, cli_complemento =:cli_complemento, cli_credito =:cli_credito, cli_ibge =:cli_ibge WHERE cli_codigo =:cli_id;');
-          DataModule2.qrycliente.ParamByName('cli_razao').AsString:=AnsiUpperCase(RemoveAcentos(razao.Text));
-          DataModule2.qrycliente.ParamByName('cli_fantasia').AsString:=AnsiUpperCase(RemoveAcentos(fantasia.Text));
-          DataModule2.qrycliente.ParamByName('cli_cgc').AsString:=SomenteNumero(CNPJ.Text);
-          DataModule2.qrycliente.ParamByName('cli_inscricao').AsString:=SomenteNumero(inscricao.Text);
-          DataModule2.qrycliente.ParamByName('cli_cep').AsString:=SomenteNumero(cep.Text);
-          DataModule2.qrycliente.ParamByName('cli_logradouro').AsString:=AnsiUpperCase(RemoveAcentos(logradouro.Text));
-          DataModule2.qrycliente.ParamByName('cli_bairro').AsString:=AnsiUpperCase(RemoveAcentos(bairro.Text));
-          DataModule2.qrycliente.ParamByName('cli_estado').AsString:=uf.Text;
-          DataModule2.qrycliente.ParamByName ('cli_municipio').AsString:=AnsiUpperCase(RemoveAcentos(municipio.Text));
-          DataModule2.qrycliente.ParamByName('cli_estado').AsString:=ibge.Text;
-          DataModule2.qrycliente.ParamByName ('cli_contato').AsString:=SomenteNumero(contato.Text);
-          DataModule2.qrycliente.ParamByName ('cli_telefone').AsString:=SomenteNumero(telefone.Text);
-          DataModule2.qrycliente.ParamByName ('cli_celular').AsString:=SomenteNumero(celular.Text);
-          DataModule2.qrycliente.ParamByName('cli_email').AsString:=email.Text;
-          DataModule2.qrycliente.ParamByName('cli_vendedor').AsString:=vendedor1.Text;
-          DataModule2.qrycliente.ParamByName('cli_cadastro').AsString:=data_cadastro.Text;
-          DataModule2.qrycliente.ParamByName('cli_alteracao').AsString:=alterado.Text;
-          DataModule2.qrycliente.ParamByName('cli_ativo').AsString:=ativo.Text;
-          DataModule2.qrycliente.ParamByName('cli_novo').AsString:=novo.Text;
-          DataModule2.qrycliente.ParamByName('cli_vendedor2').AsString:=vendedor2.Text;
-          DataModule2.qrycliente.ParamByName('cli_vendedor3').AsString:=vendedor3.Text;
-          DataModule2.qrycliente.ParamByName('cli_vendedor4').AsString:=vendedor4.Text;
-          DataModule2.qrycliente.ParamByName('cli_complemento').AsString:=AnsiUpperCase(RemoveAcentos(complemento.Text));
-          DataModule2.qrycliente.ParamByName('cli_credito').AsString:=credito.Text;
-          DataModule2.qrycliente.ParamByName ('cli_ibge').AsString:=ibge.Text;
-          DataModule2.qrycliente.ParamByName('cli_id').AsString:=id.Text;
-          DataModule2.qrycliente.ExecSQL;
-         end
-
-
+           ' cli_novo =:cli_novo, cli_vendedor3 =:cli_vendedor3, cli_vendedor4 =:cli_vendedor4, cli_complemento =:cli_complemento, cli_credito =:cli_credito, cli_ibge =:cli_ibge WHERE cli_codigo =:cli_codigo;');
+        end
     //CASO NÃO VEJA QUE O ID ESTÁ INSERIDO NA BASE...
         Else //if not DataModule2.qrycliente.Locate('cli_codigo', id.Text) then
         begin
@@ -132,10 +103,12 @@ begin
            ' cli_municipio, cli_ibge, cli_contato, cli_telefone, cli_celular, cli_email, cli_vendedor, cli_cadastro, cli_alteracao, cli_vendedor2, cli_ativo, cli_novo, cli_vendedor3, cli_vendedor4, cli_complemento, cli_credito)');
            DataModule2.qrycliente.SQL.ADD('values (:cli_codigo, :cli_razao, :cli_fantasia, :cli_tipo, :cli_cgc, :cli_inscricao, :cli_cep, :cli_logradouro, :cli_bairro, :cli_estado, '+
            ' :cli_municipio, :cli_ibge, :cli_contato, :cli_telefone, :cli_celular, :cli_email, :cli_vendedor, :cli_cadastro, :cli_alteracao, :cli_vendedor2, :cli_ativo, :cli_novo, :cli_vendedor3, :cli_vendedor4, :cli_complemento, :cli_credito)');
+
+           DataModule2.qrycliente.ParamByName('cli_tipo').AsString:=tipo.Items[tipo.ItemIndex];
+        end;
            DataModule2.qrycliente.ParamByName('cli_codigo').AsString:=id.text;
            DataModule2.qrycliente.ParamByName('cli_razao').AsString:=AnsiUpperCase(RemoveAcentos(razao.Text));
            DataModule2.qrycliente.ParamByName('cli_fantasia').AsString:=AnsiUpperCase(RemoveAcentos(fantasia.Text));
-           DataModule2.qrycliente.ParamByName('cli_tipo').AsString:=tipo.Items[tipo.ItemIndex];
            DataModule2.qrycliente.ParamByName('cli_cgc').AsString:=SomenteNumero(CNPJ.Text);
            DataModule2.qrycliente.ParamByName('cli_inscricao').AsString:=SomenteNumero(inscricao.Text);
            DataModule2.qrycliente.ParamByName('cli_cep').AsString:=SomenteNumero(cep.Text);
@@ -160,8 +133,16 @@ begin
            DataModule2.qrycliente.ParamByName('cli_credito').AsString:=credito.Text;
            DataModule2.qrycliente.ParamByName ('cli_ibge').AsString:=ibge.Text;
            DataModule2.qrycliente.EXECSQL;
-        end
+        end;
 
+        Try
+  			DataModule2.qrycliente.EXECSQL;
+				ShowMessage('O Cliente foi inserido/Atualizado com sucesso em sua base!'+
+            'sincronize-o para enviá-lo a base do servidor');
+      Except On E:Exception Do
+        Raise Exception.Create('Problemas ao inserir/Atualizar cliente.'+#10+E.Message);
+      End;
+      
 //             if DataModule2.qrycliente.Locate('cli_razao', id.Text,[]) then
 //         begin
 //          ShowMessage('O cliente ja está cadastrado');

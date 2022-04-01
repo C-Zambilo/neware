@@ -79,13 +79,15 @@ begin
      end;
  ///verificação de campos Finalizada
  ///
-   with DataModule2 do
+ //  with DataModule2 do
    BEGIN
-    DataModule2.qrycliente.Active:=false;
+    DataModule2.qrycliente.Close;
     DataModule2.qrycliente.SQL.Clear;
     DataModule2.qrycliente.SQL.ADD('SELECT * FROM  TAB_CLIENTE');
-    DataModule2.qrycliente.Active:=true;
-   if  DataModule2.qrycliente.Locate('cli_codigo', id.Text,[]) then
+    DataModule2.qrycliente.SQL.ADD('Where cli_codigo = :cli_codigo');
+	DataModule2.qrycliente.ParamByName('cli_codigo').AsString:=id.text;
+    DataModule2.qrycliente.Open;
+   if Not DataModule2.qrycliente.EOF then
         begin
            DataModule2.qrycliente.Active:=false;
            DataModule2.qrycliente.SQL.Clear;

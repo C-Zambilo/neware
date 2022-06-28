@@ -1,0 +1,716 @@
+unit UnitTelaInicial;
+
+interface
+
+uses
+  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
+  FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.StdCtrls,
+  FMX.Header, FMX.Controls.Presentation, FMX.Ani, System.Actions, FMX.ActnList,
+  FMX.StdActns, IdBaseComponent, IdComponent, IdTCPConnection, IdTCPClient,
+  IdExplicitTLSClientServerBase, IdFTP, FireDAC.Stan.Intf, FireDAC.Stan.Option,
+  FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
+  FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Phys.SQLite,
+  FireDAC.Phys.SQLiteDef, FireDAC.Stan.ExprFuncs,
+  FireDAC.Phys.SQLiteWrapper.Stat, FireDAC.FMXUI.Wait, FireDAC.Stan.Param,
+  FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, Data.DB, FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client, FMX.Objects, System.IOUtils,
+
+  {$IF DEFINED(ANDROID)}
+  System.Permissions,
+  Androidapi.Helpers,
+  Androidapi.JNI.GraphicsContentViewText,
+  Androidapi.JNI.JavaTypes,
+  Androidapi.JNI.Telephony,
+  Androidapi.JNI.App,
+  Androidapi.JNI.OS,
+  {$ENDIF}
+
+   FMX.ExtCtrls;
+
+type
+  TForm2 = class(TForm)
+    rectCabecalho: TRectangle;
+    Label2: TLabel;
+    RecRodape: TRectangle;
+    Label1: TLabel;
+    IdFTP: TIdFTP;
+    circlePedidos: TCircle;
+    imgPedidos: TImage;
+    LblPedidos: TLabel;
+    rectClientes: TRectangle;
+    LblClientes: TLabel;
+    rect_opacity: TRectangle;
+    Rectangle1: TRectangle;
+    Label3: TLabel;
+    circleClientes: TCircle;
+    imgClientes: TImage;
+    RectSincro: TRectangle;
+    lblSincro: TLabel;
+    LblSincro2: TLabel;
+    circleSinc: TCircle;
+    imgSincro: TImage;
+    procedure circlePedidosClick(Sender: TObject);
+    procedure imgPedidosClick(Sender: TObject);
+    procedure circleClientesClick(Sender: TObject);
+    procedure imgClientesClick(Sender: TObject);
+    procedure circleSincClick(Sender: TObject);
+    procedure imgSincroClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormShow(Sender: TObject);
+  private
+{$IFDEF ANDROID}
+    PermissaoReadStorage,
+    PermissaoWriteStorage: String;
+    procedure DisplayMessageLibrary(Sender: TObject;
+    const APermissions: TArray<string>;
+    const APostProc: TProc);
+    procedure LibraryPermissionRequestResult(Sender: TObject;
+    const APermissions: TArray<string>;
+    const AGrantResults: TArray<TPermissionStatus>);
+    procedure Baixar_ViaIdFTP_WINDOWS;
+    procedure Baixar_ViaIdFTP_ANDROID;
+    {$ENDIF}
+    procedure btPedidos;
+    procedure btClientes;
+
+    { Private declarations }
+  public
+    {$IFDEF ANDROID}
+    f_Atribuida_PermissaoReadStorage,
+    f_Atribuida_PermissaoWriteStorage: Boolean;
+    {$ENDIF}
+    procedure btSincrofiltro;
+    procedure btVendedorSincrofiltro;
+    procedure ThreadsincronizacaoTerminate(Sender: TObject);
+    procedure ApagaPedido;
+    procedure ECLIENTE;
+    { Public declarations }
+  end;
+
+var
+  Form2: TForm2;
+
+implementation
+uses
+  UnitLogin, dmbanco, PedidoConsulta, ClientesPesquisa, Cliente, pedidos;
+
+{$R *.fmx}
+{$R *.LgXhdpiPh.fmx ANDROID}
+{$R *.LgXhdpiTb.fmx ANDROID}
+{$R *.SmXhdpiPh.fmx ANDROID}
+
+
+
+{$IFDEF ANDROID}
+
+procedure TForm2.LibraryPermissionRequestResult(
+  Sender: TObject; const APermissions: TArray<string>;
+  const AGrantResults: TArray<TPermissionStatus>);
+begin
+  // 2 Permissoes: READ_EXTERNAL_STORAGE e WRITE_EXTERNAL_STORAGE
+  if (Length(AGrantResults) = 2)
+  and (AGrantResults[0] = TPermissionStatus.Granted)
+  and (AGrantResults[1] = TPermissionStatus.Granted) then
+  begin
+    f_Atribuida_PermissaoReadStorage   := True;
+    f_Atribuida_PermissaoWriteStorage  := True;
+  end
+  else
+    ShowMessage('Você não tem permissão para acessar');
+end;
+
+{$ENDIF}
+
+//Botões do Menu
+
+//BOTÃO PARA PEDIDOS
+procedure TForm2.btPedidos;
+begin
+    DataModule2.qrysincro.Active:=false;
+    DataModule2.qrysincro.SQL.Clear;
+    DataModule2.qrysincro.SQL.ADD('SELECT * FROM  TAB_SINCRO');
+    DataModule2.qrysincro.Active:=true;
+ if DataModule2.qrysincro.Locate('sn_sincro','S', [loCaseInsensitive ]) then
+    begin
+      application.CreateForm(TForm10, Form10);
+      Form10.Show;
+      Application.MainForm:=Form10;
+      Close;
+      exit;
+    end
+    ELSE
+    ShowMessage('Sincronize o seu smartphone para acessar os Pedidos');
+end;
+
+procedure TForm2.circlePedidosClick(Sender: TObject);
+begin
+  btPedidos;
+end;
+
+procedure TForm2.imgPedidosClick(Sender: TObject);
+begin
+  btPedidos;
+end;
+
+//BOTÃO PARA CLIENTES
+procedure TForm2.btClientes;
+begin
+    DataModule2.qrysincro.Active:=false;
+    DataModule2.qrysincro.SQL.Clear;
+    DataModule2.qrysincro.SQL.ADD('SELECT * FROM  TAB_SINCRO WHERE sn_sincro LIKE :REM');
+    DataModule2.qrysincro.ParamByName('REM').Value := 'S';
+    DataModule2.qrysincro.Active:=true;
+
+   if DataModule2.qrysincro.Locate('sn_sincro','S', [loCaseInsensitive ]) then
+    begin
+      application.CreateForm(TForm7, Form7);
+      Form7.Show;
+      Application.MainForm := Form7;
+      Close;
+      exit;
+    end
+    ELSE
+    ShowMessage('Sincronize o seu smartphone para acessar os Clientes');
+end;
+
+procedure TForm2.circleClientesClick(Sender: TObject);
+begin
+  btClientes;
+end;
+
+procedure TForm2.imgClientesClick(Sender: TObject);
+begin
+  btClientes;
+end;
+
+//BOTÃO PARA SINCRONIZAÇÃO
+procedure TForm2.btSincrofiltro;
+    var   gravar :TStringList;
+    var   myFile : TextFile;
+    var    n1 : String ;
+    var   myFile2:TextFile;
+    LTThread : TThread;
+begin
+  LTThread := TThread.CreateAnonymousThread(procedure
+  begin
+    TThread.Synchronize(TThread.Current, procedure
+    begin
+      rect_opacity.Visible := True;
+      rect_opacity.BringToFront;
+    end);
+
+    Form2.ApagaPedido;
+    Form2.ECLIENTE;
+
+    gravar:=Tstringlist.Create;
+    if not IdFTP.Connected then
+    begin
+      IdFTP.Host := 'newarettt.ddns.net';
+      IdFTP.Username := 'neware';
+      IdFTP.Password := 'V8.';
+      IdFTP.Port :=21;
+      IdFTP.Connect;
+    end
+    ELSE
+    begin
+      ShowMessage('Não foi possível realizar a sincronização');
+    end;
+
+  if IdFTP.Connected then
+  begin
+    {$IF Defined(MSWINDOWS)}
+
+      if not DirectoryExists('C:\temp\') then
+        ForceDirectories('C:\temp\');
+
+      IdFTP.Get('/ftp/vdf.rem', 'C:\temp\vdf.rem', true, false);
+    {$ENDIF}
+
+    {$IF DEFINED(ANDROID)}
+      try
+        PermissionsService.RequestPermissions([PermissaoReadStorage, PermissaoWriteStorage], nil, nil);
+      except
+        ShowMessage('Não foi possível estabelecer permissão para sua Câmera');
+      end;
+
+      if f_Atribuida_PermissaoReadStorage and f_Atribuida_PermissaoWriteStorage then
+      begin
+        IdFTP.Get('/ftp/vdf.rem', TPath.Combine(TPath.GetTempPath, 'vdf.rem'), true, false);
+      end;
+   {$ENDIF}
+  end;
+
+   try
+     AssignFile(myFile , 'vdf.rem');
+     Reset(myFile);
+     gravar.Delimiter := '|';
+     gravar.StrictDelimiter := true;
+     DataModule2.qrydeletesSincro.Active:=false;
+     DataModule2.qrydeletesSincro.SQL.Clear;
+     DataModule2.qrydeletesSincro.SQL.ADD( 'DELETE FROM TAB_LOGIN;'+
+                                           'DELETE FROM TAB_EMPRESA;'+
+                                           'DELETE FROM TAB_FORMA;'+
+                                           'DELETE FROM TAB_ESTOQUE;'+
+                                           'DELETE FROM TAB_CLIENTE;'+
+                                           'DELETE FROM TAB_VENDEDOR;'+
+                                           'DELETE FROM TAB_LINHA;'+
+                                           'DELETE FROM TAB_VENDELIN;'+
+                                           'DELETE FROM TAB_CONDICAO');
+    DataModule2.qrydeletesSincro.ExecSQL;
+    while not Eof(myFile)  do
+    begin
+      ReadLn(myFile,n1);
+      gravar.DelimitedText := n1;
+        if gravar[0] = ('EEMPRESA') then
+        with DataModule2 do
+        begin
+          qryempresa.close;
+          qryempresa.SQL.Clear;
+          qryempresa.SQL.ADD('Insert Into TAB_EMPRESA (emp_codigo, emp_razao)');
+          qryempresa.SQL.ADD('values (:id , :razao )');
+          qryempresa.ParamByName ('id').AsString:=gravar[1];
+          qryempresa.ParamByName ('razao').AsString:=gravar[2];
+          qryempresa.ExecSql
+        end;
+
+        if gravar[0] = ('EFORMA_PG') then
+        with DataModule2 do
+        begin
+          qryforma.close;
+          qryforma.SQL.Clear;
+          qryforma.SQL.ADD('Insert Into TAB_FORMA (fpg_codigo, fpg_forma)');
+          qryforma.SQL.ADD('values (:fpg_codigo, :fpg_forma )');
+          qryforma.ParamByName ('fpg_codigo').AsString:=gravar[1];
+          qryforma.ParamByName ('fpg_forma').AsString:=gravar[2];
+          qryforma.ExecSql
+        end;
+
+        if gravar[0] = ('ECOBRANCA') then
+        with DataModule2 do
+        begin
+          qrycondicao.close;
+          qrycondicao.SQL.Clear;
+          qrycondicao.SQL.ADD('Insert Into TAB_CONDICAO (cpg_id, cpg_condicao,cpg_parcelas, cpg_minimo,cpg_parc01, cpg_parc02, cpg_parc03, cpg_parc04, cpg_parc05, cpg_parc06, cpg_parc07, cpg_parc08, cpg_parc09, cpg_parc10, cpg_parc11, cpg_parc12, cpg_cobrancafiltro)');
+          qrycondicao.SQL.ADD('values (:cpg_id, :cpg_condicao, :cpg_parcelas, :cpg_minimo, :cpg_parc01, :cpg_parc02, :cpg_parc03, :cpg_parc04, :cpg_parc05, :cpg_parc06, :cpg_parc07, :cpg_parc08, :cpg_parc09, :cpg_parc10, :cpg_parc11, :cpg_parc12, :cpg_cobrancafiltro )');
+          qrycondicao.ParamByName ('cpg_id').AsString:=gravar[1];
+          qrycondicao.ParamByName ('cpg_condicao').AsString:=gravar[2];
+          qrycondicao.ParamByName ('cpg_parcelas').AsString:=gravar[3];
+          qrycondicao.ParamByName ('cpg_minimo').AsString:=gravar[4];
+          qrycondicao.ParamByName ('cpg_parc01').AsString:=gravar[5];
+          qrycondicao.ParamByName ('cpg_parc02').AsString:=gravar[6];
+          qrycondicao.ParamByName ('cpg_parc03').AsString:=gravar[7];
+          qrycondicao.ParamByName ('cpg_parc04').AsString:=gravar[8];
+          qrycondicao.ParamByName ('cpg_parc05').AsString:=gravar[9];
+          qrycondicao.ParamByName ('cpg_parc06').AsString:=gravar[10];
+          qrycondicao.ParamByName ('cpg_parc07').AsString:=gravar[11];
+          qrycondicao.ParamByName ('cpg_parc08').AsString:=gravar[12];
+          qrycondicao.ParamByName ('cpg_parc09').AsString:=gravar[13];
+          qrycondicao.ParamByName ('cpg_parc10').AsString:=gravar[14];
+          qrycondicao.ParamByName ('cpg_parc11').AsString:=gravar[15];
+          qrycondicao.ParamByName ('cpg_parc12').AsString:=gravar[16];
+          qrycondicao.ParamByName ('cpg_cobrancafiltro').AsString:=gravar[17];
+          qrycondicao.ExecSql
+        end;
+
+        if gravar[0] = ('EESTOQUE') then
+        with DataModule2 do
+        begin
+          qryestoque.close;
+          qryestoque.SQL.Clear;
+          qryestoque.sql.Add('Insert Into TAB_ESTOQUE (est_codigo, est_produto, est_fornecedor, est_linha, est_marca, est_saldo, est_custo, est_preco, est_unidade, est_situacao, est_barras, est_peso,'+
+          ' est_valor1, est_valor2, est_valor3, est_valor4, est_valor5, est_valor6, est_valor7, est_valor8, est_valor9)');
+          qryestoque.sql.Add('values (:est_codigo, :est_produto, :est_fornecedor, :est_linha, :est_marca, :est_saldo, :est_custo, :est_preco, :est_unidade, :est_situacao, :est_barras, :est_peso,'+
+          ' :est_valor1, :est_valor2, :est_valor3, :est_valor4, :est_valor5, :est_valor6, :est_valor7, :est_valor8, :est_valor9 )');
+          qryestoque.ParamByName ('est_codigo').AsString:=gravar[1];
+          qryestoque.ParamByName ('est_produto').AsString:=gravar[2];
+          qryestoque.ParamByName ('est_fornecedor').AsString:=gravar[3];
+          qryestoque.ParamByName ('est_linha').AsString:=gravar[4];
+          qryestoque.ParamByName ('est_marca').AsString:=gravar[5];
+          qryestoque.ParamByName ('est_saldo').AsString:=gravar[6];
+          qryestoque.ParamByName ('est_custo').AsString:=gravar[7];
+          qryestoque.ParamByName ('est_preco').AsString:=gravar[8];
+          qryestoque.ParamByName('est_unidade').AsString:=gravar[9];
+          qryestoque.ParamByName ('est_barras').AsString:=gravar[10];
+          qryestoque.ParamByName ('est_situacao').AsString:=gravar[11];
+          qryestoque.ParamByName ('est_peso').AsString:=gravar[12];
+          qryestoque.ParamByName ('est_valor1').AsString:=gravar[22];
+          qryestoque.ParamByName ('est_valor2').AsString:=gravar[23];
+          qryestoque.ParamByName ('est_valor3').AsString:=gravar[24];
+          qryestoque.ParamByName ('est_valor4').AsString:=gravar[25];
+          qryestoque.ParamByName ('est_valor5').AsString:=gravar[26];
+          qryestoque.ParamByName ('est_valor6').AsString:=gravar[27];
+          qryestoque.ParamByName ('est_valor7').AsString:=gravar[28];
+          qryestoque.ParamByName ('est_valor8').AsString:=gravar[29];
+          qryestoque.ParamByName ('est_valor9').AsString:=gravar[30];
+          qryestoque.ExecSql
+        end;
+
+        if gravar[0] = ('ECLIENTES') then
+        with DataModule2 do
+        begin
+          qrycliente.close;
+          qrycliente.SQL.Clear;
+          qrycliente.sql.Add('Insert Into TAB_CLIENTE (cli_codigo, cli_razao, cli_fantasia, cli_tipo, cli_cgc, cli_inscricao, cli_cep, cli_logradouro, cli_bairro, cli_estado, cli_municipio, cli_ibge,'+
+          'cli_contato, cli_telefone, cli_celular, cli_email, cli_vendedor, cli_cadastro, cli_vendedor2, cli_ativo, cli_vendedor3, cli_vendedor4, cli_complemento, cli_credito)');
+          qrycliente.sql.Add('values (:cli_codigo, :cli_razao, :cli_fantasia, :cli_tipo, :cli_cgc, :cli_inscricao, :cli_cep, :cli_logradouro, :cli_bairro, :cli_estado, :cli_municipio, :cli_ibge,'+
+          ':cli_contato, :cli_telefone, :cli_celular, :cli_email, :cli_vendedor, :cli_cadastro, :cli_vendedor2, :cli_ativo, :cli_vendedor3, :cli_vendedor4, :cli_complemento, :cli_credito)');
+          qrycliente.ParamByName ('cli_codigo').AsString :=gravar[1];
+          qrycliente.ParamByName ('cli_razao').AsString  :=gravar[2];
+          qrycliente.ParamByName ('cli_fantasia').AsString :=gravar[3];
+          qrycliente.ParamByName ('cli_tipo').AsString   :=gravar[4];
+          qrycliente.ParamByName ('cli_cgc').AsString    :=gravar[5];
+          qrycliente.ParamByName ('cli_inscricao').AsString :=gravar[6];
+          qrycliente.ParamByName ('cli_cep').AsString     :=gravar[7];
+          qrycliente.ParamByName ('cli_logradouro').AsString :=gravar[8];
+          qrycliente.ParamByName ('cli_bairro').AsString  :=gravar[9];
+          qrycliente.ParamByName ('cli_estado').AsString  :=gravar[10];
+          qrycliente.ParamByName ('cli_municipio').AsString :=gravar[11];
+          qrycliente.ParamByName ('cli_ibge').AsString     :=gravar[12];
+          qrycliente.ParamByName ('cli_telefone').AsString :=gravar[13];
+          qrycliente.ParamByName ('cli_celular').AsString  :=gravar[14];
+          qrycliente.ParamByName ('cli_email').AsString    :=gravar[15];
+          qrycliente.ParamByName ('cli_contato').AsString  :=gravar[16];
+          qrycliente.ParamByName ('cli_cadastro').AsString :=gravar[17];
+          qrycliente.ParamByName ('cli_vendedor').AsString :=gravar[18];
+          qrycliente.ParamByName ('cli_vendedor2').AsString:=gravar[19];
+          qrycliente.ParamByName ('cli_ativo').AsString    :=gravar[20];
+          qrycliente.ParamByName ('cli_vendedor3').AsString:=gravar[21];
+          qrycliente.ParamByName ('cli_vendedor4').AsString:=gravar[22];
+          qrycliente.ParamByName ('cli_complemento').AsString:=gravar[24];
+          qrycliente.ParamByName ('cli_credito').AsString  :=gravar[25];
+          qrycliente.ExecSql
+        end;
+
+        if gravar[0] = ('EVENDEDOR') then
+        with DataModule2 do
+        begin
+          qryvendedor.close;
+          qryvendedor.SQL.Clear;
+          qryvendedor.sql.Add('Insert Into TAB_VENDEDOR (ven_cod, ven_nome, ven_telefone, ven_ativo, ven_celular, ven_senha, ven_ativoapp)');
+          qryvendedor.sql.Add('values (:ven_cod, :ven_nome, :ven_telefone, :ven_ativo, :ven_celular, :ven_senha, :ven_ativoapp)');
+          qryvendedor.ParamByName ('ven_cod').AsString:=gravar[1];
+          qryvendedor.ParamByName ('ven_nome').AsString:=gravar[2];
+          qryvendedor.ParamByName ('ven_telefone').AsString:=gravar[3];
+          qryvendedor.ParamByName ('ven_ativo').AsString:=gravar[4];
+          qryvendedor.ParamByName ('ven_celular').AsString:=gravar[5];
+          qryvendedor.ParamByName ('ven_senha').AsString:=gravar[6];
+          qryvendedor.ParamByName ('ven_ativoapp').AsString:=gravar[7];
+          qryvendedor.ExecSql
+        end;
+
+        if gravar[0] = ('ELINHA') then
+        with DataModule2 do
+        begin
+          qrylinha.close;
+          qrylinha.SQL.Clear;
+          qrylinha.sql.Add('Insert Into TAB_LINHA (lin_linha)');
+          qrylinha.sql.Add('values (:lin_linha)');
+          qrylinha.ParamByName ('lin_linha').AsString:=gravar[1];
+          qrylinha.ExecSql
+        end;
+
+        if gravar[0] = ('EVENDELIN') then
+        with DataModule2 do
+        begin
+          qryvendelin.close;
+          qryvendelin.SQL.Clear;
+          qryvendelin.sql.Add('Insert Into TAB_VENDELIN (vln_vendedor, vln_linha)');
+          qryvendelin.sql.Add('values (:vln_vendedor, :vln_linha)');
+          qryvendelin.ParamByName ('vln_vendedor').AsString:=gravar[1];
+          qryvendelin.ParamByName ('vln_linha').AsString:=gravar[2];
+          qryvendelin.ExecSql
+        end;
+     end;
+
+    DataModule2.qrysincro.close;
+    DataModule2.qrysincro.SQL.Clear;
+    DataModule2.qrysincro.SQL.ADD('SELECT * FROM  TAB_SINCRO');
+    DataModule2.qrysincro.open;
+    if not DataModule2.qrysincro.Locate('sn_sincro','S', [loCaseInsensitive ])  then
+    begin
+     var currentdate:TDateTime;
+     currentdate:= now;
+     DataModule2.qrysincro.Active:=false;
+     DataModule2.qrysincro.SQL.Clear;
+     DataModule2.qrysincro.sql.Add('Insert Into TAB_SINCRO (sn_sincro, sn_data) VALUES (:sn_sincro, :sn_data)');
+     DataModule2.qrysincro.ParamByName ('sn_sincro').AsString:='S';
+     DataModule2.qrysincro.ParamByName ('sn_data').AsString:=datetostr(currentdate);
+     DataModule2.qrysincro.ExecSql;
+   end;
+    finally
+    //IdFTP.Disconnect;
+    Closefile(myfile);
+    end;
+  end);
+
+  LTThread.OnTerminate := ThreadsincronizacaoTerminate;
+  LTThread.Start;
+end;
+ //sincroniza só os vendedores
+procedure TForm2.btVendedorSincrofiltro;
+    var   gravar :TStringList;
+    var   myFile : TextFile;
+    var    n1 : String ;
+    var   myFile2:TextFile;
+    LTThread : TThread;
+begin
+     LTThread := TThread.CreateAnonymousThread(procedure
+  begin
+    TThread.Synchronize(TThread.Current, procedure
+    begin
+      rect_opacity.Visible := True;
+      rect_opacity.BringToFront;
+    end);
+
+    gravar:=Tstringlist.Create;
+    if not IdFTP.Connected then
+    begin
+      IdFTP.Host := 'newarettt.ddns.net';
+      IdFTP.Username := 'neware';
+      IdFTP.Password := 'V8.';
+      IdFTP.Port :=21;
+      IdFTP.Connect;
+    end
+    ELSE
+    begin
+      ShowMessage('Não foi possível realizar a sincronização');
+    end;
+
+    if IdFTP.Connected then
+    begin
+      {$IF Defined(MSWINDOWS)}
+
+        if not DirectoryExists('C:\temp\') then
+          ForceDirectories('C:\temp\');
+
+        IdFTP.Get('/ftp/vdf.rem', 'C:\temp\vdf.rem', true, false);
+      {$ENDIF}
+
+      {$IF DEFINED(ANDROID)}
+        try
+          PermissionsService.RequestPermissions([PermissaoReadStorage, PermissaoWriteStorage], nil, nil);
+        except
+          ShowMessage('Não foi possível estabelecer permissão para sua Câmera');
+        end;
+
+        if f_Atribuida_PermissaoReadStorage and f_Atribuida_PermissaoWriteStorage then
+        begin
+          IdFTP.Get('/ftp/vdf.rem', TPath.Combine(TPath.GetTempPath, 'vdf.rem'), true, false);
+        end;
+     {$ENDIF}
+    end;
+
+   try
+     AssignFile(myFile , 'vdf.rem');
+     Reset(myFile);
+     gravar.Delimiter := '|';
+     gravar.StrictDelimiter := true;
+     DataModule2.qrydeletesSincro.Active:=false;
+     DataModule2.qrydeletesSincro.SQL.Clear;
+     DataModule2.qrydeletesSincro.SQL.ADD('DELETE FROM TAB_VENDEDOR');
+     DataModule2.qrydeletesSincro.ExecSQL;
+
+     while not Eof(myFile)  do
+     begin
+           ReadLn(myFile,n1);
+           gravar.DelimitedText := n1;
+
+           if gravar[0] = ('EVENDEDOR') then
+           with DataModule2 do
+           begin
+             qryvendedor.close;
+             qryvendedor.SQL.Clear;
+             qryvendedor.sql.Add('Insert Into TAB_VENDEDOR (ven_cod, ven_nome, ven_telefone, ven_ativo, ven_celular, ven_senha, ven_ativoapp)');
+             qryvendedor.sql.Add('values (:ven_cod, :ven_nome, :ven_telefone, :ven_ativo, :ven_celular, :ven_senha, :ven_ativoapp)');
+             qryvendedor.ParamByName ('ven_cod').AsString:=gravar[1];
+             qryvendedor.ParamByName ('ven_nome').AsString:=gravar[2];
+             qryvendedor.ParamByName ('ven_telefone').AsString:=gravar[3];
+             qryvendedor.ParamByName ('ven_ativo').AsString:=gravar[4];
+             qryvendedor.ParamByName ('ven_celular').AsString:=gravar[5];
+             qryvendedor.ParamByName ('ven_senha').AsString:=gravar[6];
+             qryvendedor.ParamByName ('ven_ativoapp').AsString:=gravar[7];
+             qryvendedor.ExecSql
+           end;
+      end;
+      DataModule2.qrysincro.close;
+      DataModule2.qrysincro.SQL.Clear;
+      DataModule2.qrysincro.SQL.ADD('SELECT * FROM  TAB_SINCRO');
+      DataModule2.qrysincro.open;
+
+      if not DataModule2.qrysincro.Locate('sn_sincro','S', [loCaseInsensitive ])  then
+      begin
+       var currentdate:TDateTime;
+       currentdate:= now;
+       DataModule2.qrysincro.Active:=false;
+       DataModule2.qrysincro.SQL.Clear;
+       DataModule2.qrysincro.sql.Add('Insert Into TAB_SINCRO (sn_sincro, sn_data) VALUES (:sn_sincro, :sn_data)');
+       DataModule2.qrysincro.ParamByName ('sn_sincro').AsString:='S';
+       DataModule2.qrysincro.ParamByName ('sn_data').AsString:=datetostr(currentdate);
+       DataModule2.qrysincro.ExecSql;
+     end;
+    //verificar banco e gerar .rem
+    finally
+    Closefile(myfile);
+    end;
+  end);
+  LTThread.OnTerminate := ThreadsincronizacaoTerminate;
+  LTThread.Start;
+end;
+
+procedure TForm2.ThreadsincronizacaoTerminate(Sender: TObject);
+begin
+  rect_opacity.Visible := False;
+   if Form1.LControl then
+   begin
+      application.CreateForm(TForm1, Form1);
+     Form1.LControl := False;
+     Application.MainForm := Form1;
+     Form1.Show;
+     Close;
+   end;
+
+   if Form1.FControl = 'S' then
+   begin
+     Close;
+   end;
+
+  if Sender is TThread then
+  begin
+    if Assigned(TThread(Sender).FatalException) then
+    begin
+      ShowMessage(Exception(TThread(Sender).FatalException).Message);
+      Exit;
+    end;
+  end;
+end;
+
+procedure TForm2.circleSincClick(Sender: TObject);
+begin
+  btSincroFiltro;
+end;
+
+procedure TForm2.imgSincroClick(Sender: TObject);
+begin
+  btSincroFiltro;
+end;
+
+procedure TForm2.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  Form2 := nil;
+end;
+
+procedure TForm2.FormShow(Sender: TObject);
+begin
+  {$IFDEF ANDROID}
+  PermissaoReadStorage   := JStringToString(TJManifest_permission.JavaClass.READ_EXTERNAL_STORAGE);
+  PermissaoWriteStorage  := JStringToString(TJManifest_permission.JavaClass.WRITE_EXTERNAL_STORAGE);
+  {$ENDIF}
+end;
+
+//MOBILE.REM
+procedure TForm2.ECLIENTE;
+VAR myfile2:textfile;
+    VariavelPedido:String;
+    VariavelItem:String;
+    CodVendedor:String;
+begin
+VariavelPedido := '';
+VariavelItem   := '';
+CodVendedor    :=DataModule2.qrylogin.ParamByName('log_codigo').AsString;
+
+ if IdFTP.Connected then
+    begin
+      IdFTP.ChangeDir('/ftp');
+      IdFTP.Put('mobile'+CodVendedor+'.rem','mobile'+CodVendedor+'.rem',false);
+    end;
+
+    DataModule2.qrycliente.Close;
+    DataModule2.qrycliente.SQL.Clear;
+    DataModule2.qrycliente.SQL.ADD('SELECT * FROM  TAB_CLIENTE');
+    DataModule2.qrycliente.SQL.ADD('WHERE cli_novo LIKE :REM');
+    DataModule2.qrycliente.ParamByName('REM').Value := 'S';
+    DataModule2.qrycliente.Open;
+  begin
+    try
+       AssignFile(myFile2,'mobile'+CodVendedor+'.rem');
+       Rewrite (myFile2);
+       while not DataModule2.qrycliente.eof do
+       begin
+         writeln (myFile2,'ECLIENTE|', DataModule2.qrycliente.FieldByName('cli_codigo').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName('cli_razao').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName('cli_fantasia').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName('cli_tipo').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName('cli_cgc').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName('cli_inscricao').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName('cli_cep').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName('cli_logradouro').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName('cli_bairro').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName('cli_estado').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName('cli_municipio').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName('cli_fantasia').AsString, '|',
+                                    // DataModule2.qrycliente.FieldByName ('cli_ibge').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName ('cli_telefone').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName ('cli_celular').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName ('cli_email').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName ('cli_contato').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName ('cli_cadastro').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName ('cli_vendedor').AsString, '|',
+                                       DataModule2.qrycliente.FieldByName ('cli_complemento').AsString, '|', '1234');
+                                       DataModule2.qrycliente.next;
+       end;
+
+      DataModule2.qrypedido.Close;
+      DataModule2.qrypedido.SQL.Clear;
+      DataModule2.qrypedido.SQL.ADD('SELECT * FROM  TAB_PEDIDOS');
+    DataModule2.qrypedido.Open;
+      while not DataModule2.qrypedido.eof do
+       begin
+       VariavelPedido := 'EPEDIDO|'+ '9'+ '|'+
+                                       DataModule2.qrypedido.FieldByName('pmo_pedido').AsString+ '|'+
+                                       DataModule2.qrypedido.FieldByName('pmo_cliente').AsString+ '|'+
+                                       DataModule2.qrypedido.FieldByName('pmo_cfop').AsString+ '|'+
+                                       DataModule2.qrypedido.FieldByName('pmo_vendedor').AsString+ '|'+
+                                       DataModule2.qrypedido.FieldByName('pmo_emissao').AsString+ '|'+
+                                       DataModule2.qrypedido.FieldByName('pmo_forma').AsString+ '|'+
+                                       DataModule2.qrypedido.FieldByName('pmo_condicao').AsString+ '|'+
+                                       DataModule2.qrypedido.FieldByName('pmo_observacoes').AsString+ '|'+
+                                       DataModule2.qrypedido.FieldByName('pmo_total').AsString+ '|';
+
+        DataModule2.qryitem.Close;
+        DataModule2.qryitem.SQL.Clear;
+        DataModule2.qryitem.SQL.ADD('SELECT * FROM  TAB_ITEM');
+        DataModule2.qryitem.SQL.ADD('WHERE pmo_pedido ='+ DataModule2.qrypedido.FieldByName('pmo_pedido').AsString );
+        DataModule2.qryitem.Open;
+        while not DataModule2.qryitem.eof do
+        begin
+        VariavelItem := VariavelPedido + DataModule2.qryitem.FieldByName('itm_produto').AsString+ '|'+
+                                         DataModule2.qryitem.FieldByName('itm_quantidade').AsString+ '|'+
+                                         DataModule2.qryitem.FieldByName('itm_custo').AsString+ '|'+
+                                         DataModule2.qryitem.FieldByName('itm_bonificacao').AsString+ '|'+
+                                         DataModule2.qryitem.FieldByName('itm_total').AsString+ '|'+
+                                         '0'+ '|'+ '0';
+                                         Datamodule2.qryitem.Next;
+        writeln (myFile2, VariavelItem);
+        end;
+        Datamodule2.qrypedido.Next;
+       end;
+
+    finally
+    CloseFile(myfile2);
+    end;
+  end;
+end;
+
+procedure TForm2.ApagaPedido;
+var currentdate: TDateTime;
+begin
+    currentdate:= now;
+    DataModule2.qrypedido.Close;
+    DataModule2.qrypedido.SQL.Clear;
+    DataModule2.qrypedido.SQL.ADD('DELETE FROM TAB_PEDIDOS WHERE PMO_EMISSAO <> '+ quotedstr(DateToStr(currentdate)));
+    DataModule2.qrypedido.EXECSQL;
+    DataModule2.qrypedido.SQL.Clear;
+    DataModule2.qrypedido.SQL.ADD('DELETE FROM TAB_ITEM WHERE ITM_EMISSAO <> ' + quotedstr(DateToStr(currentdate)));
+    DataModule2.qrypedido.EXECSQL;
+end;
+end.
